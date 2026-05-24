@@ -6,6 +6,7 @@ import {
 	InvoicesTable,
 	LatestInvoiceRaw,
 	Revenue,
+	FormattedCustomersTable,
 } from "./definitions";
 import { formatCurrency } from "./utils";
 
@@ -164,15 +165,42 @@ export async function fetchInvoiceById(id: string) {
 	}
 }
 
-export async function fetchCustomers() {
+export async function fetchCustomers(): Promise<FormattedCustomersTable[]> {
 	try {
-		const customers = await sql<CustomerField[]>`
+		const data = await sql<
+			{
+				id: string;
+				name: string;
+				email: string;
+				image_url: string;
+				total_invoices: number;
+				total_pending: number;
+				total_paid: number;
+			}[]
+		>`
       SELECT
-        id,
-        name
+        customers.id,
+        customers.name,
+        customers.email,
+        customers.image_url,
+        COUNT(invoices.id) AS total_invoices,
+        SUM(CASE WHEN invoices.status = 'pending' THEN invoices.amount ELSE 0 END) AS total_pending,
+        SUM(CASE WHEN invoices.status = 'paid' THEN invoices.amount ELSE 0 END) AS total_paid
       FROM customers
-      ORDER BY name ASC
+      LEFT JOIN invoices ON customers.id = invoices.customer_id
+      GROUP BY customers.id, customers.name, customers.email, customers.image_url
+      ORDER BY customers.name ASC
     `;
+
+		const customers: FormattedCustomersTable[] = data.map((customer) => ({
+			id: customer.id,
+			name: customer.name,
+			email: customer.email,
+			image_url: customer.image_url,
+			total_invoices: Number(customer.total_invoices),
+			total_pending: formatCurrency(Number(customer.total_pending)),
+			total_paid: formatCurrency(Number(customer.total_paid)),
+		}));
 
 		return customers;
 	} catch (err) {
