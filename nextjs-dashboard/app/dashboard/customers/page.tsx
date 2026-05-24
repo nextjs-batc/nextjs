@@ -1,4 +1,3 @@
-import { Suspense } from "react";
 import { fetchCustomers } from "@/app/lib/data";
 import CustomersTable from "@/app/ui/customers/table";
 import { Metadata } from "next";
@@ -15,9 +14,7 @@ export default async function Page() {
 		<div>
 			<h1 className="text-2xl font-semibold mb-4">Customers</h1>
 
-			<Suspense fallback={<div>Loading search...</div>}>
-				<Search placeholder="Search customers..." />
-			</Suspense>
+			<Search placeholder="Search customers..." />
 
 			<CustomersTable customers={customers} />
 		</div>
